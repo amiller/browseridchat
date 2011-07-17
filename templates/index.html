@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!-- Andrew Miller <amiller@dappervision.com> -->
+<html>
+<head>
+<title>BrowserID Chat</title>
+<script src="https://browserid.org/include.js" type="text/javascript"></script>
+</head>
+
+<body>
+
+<h3>Start a secure encrypted chat using BrowserID</h3>
+
+<h3>Step 1. </h3>
+
+<div id="header">
+<div class="login"><img src="/static/img/sign_in_red.png" alt="Sign in" /></div>
+</div>
+(signin is optional, if you don't sign in you can send an anonymous message)
+<!-- Check if we're signed in already -->
+
+<h3>Step 2. Recipient email address</h3>
+Enter the email address of the person you want to talk to. The email address will be used with to look up their public key.<br>
+<input value="">
+<input type="button" value="Start session">
+<p>1. First we'll try to find the user's browserID public key.
+
+<!-- check the session, have we already started talking to someone? -->
+
+
+<h3>Step 3. Send messages</h3>
+<input style="width:400px;height:40px">
+
+<input type="button" value="Send"><br>
+
+<p>2a. If you are signed in, but your friend isn't, then we'll send them a message showing them how to sign up for browserID.
+<p>2b. If we can't find the public key, then we'll send them a message asking them to sign up. Any messages you send to them will be stored locally until they show up. You can also choose to send them a regular unencrypted message.
+
+<h3>Step 4. Session output</h3>
+
+<p>This message will be sent encrypted with the BrowserID public key.Press this button to find the user's public key
+
+<h3>Step 5. Messages Received</h3>
+
+<p>Messages directed towards you (and decrypted in your browser)
+<div>
+  <pre id="messagesreceived"></pre>
+</div>
+
+
+</body>
+
+
+
+<script type="text/javascript" src="static/js/jquery.min.js"></script>
+<script type="text/javascript" src="static/js/main.js"></script>
+<script type="text/javascript">
+// Get a session ASAP
+function loggedIn() {
+    
+}
+</script>
+
+</html>
