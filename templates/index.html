@@ -4,42 +4,131 @@
 <head>
 <title>BrowserID Chat</title>
 <script src="https://browserid.org/include.js" type="text/javascript"></script>
+<script type="text/javascript" src="static/js/jquery.min.js"></script>
+<style type="text/css">
+.role-webapp {
+   background:#DDDDDD;
+   padding: 2px;
+}
+
+.role-browser {
+   background:#DDFFDD;
+   padding: 2px;
+}
+.role-peer {
+   background:#DDDDFF;
+   padding: 2px;
+}
+.pubkey {
+   overflow:hidden;
+   max-width:100%;
+   font-size:0.7em;
+   white-space:nowrap;
+}
+</style>
 </head>
 
 <body>
+<h3>Secure Peer-to-Peer Authentication and Encryption Between Browsers using BrowserID</h3>
 
-<h3>Start a secure encrypted chat using BrowserID</h3>
+<p>BrowserID is a way for users to authenticate themselves to a web service. BrowserID solves some of the largest problems compared to other approaches, such as passwords, FacebookConnect, and even OpenID. BrowserID uses email addresses as the identifiers - which is great, since most users understand email quite well.
 
-<h3>Step 1. </h3>
+<p>What about authentication between two peers with browsers, rather than between a user and a web service? This system constructs a peer-to-peer authentication system from BrowserID primitives. In fact, this authentication involves a public key exchange so browser peers can securely communicate between each other. Even though the browsers only make outgoing connections to the BrowserIDChat webapp service and the identity providers, neither the webapp nor the identity provider has the capacity to corrupt or eavesdrop on the peer-to-peer communications.
 
-<div id="header">
-<div class="login"><img src="/static/img/sign_in_red.png" alt="Sign in" /></div>
+<p>Ideally, the browser will enable such peer-to-peer authentication directly. The cleverness of this system is to show that p2p authentication is possible, even within the restricted interface of BrowserID. <b>The main trick is to transfer an encrypted token that gets included with the audience hostname</b>, i.e. <code>AD4B12EF223.token.browserid.com</code>.
+
+<p>The following page is an interactive prototype of the key exchange.
+<div class="legend">Legend: 
+<span class="role-webapp">[Visible to Webapp]</span>
+<span class="role-browser">[In Browser]</span>
+<span class="role-peer">[Peer's Browser]</span> </div>
+
+<h3>Step 0. Sign in to Hub Server</h3>
+<p>This construction involves two BrowserID signons - first a standard signon to the BrowserIDChat hub service, and then as part of a key exchange with another BrowserID user. If you already have BrowserID then this will be straightforward - if you haven't used BrowserID before, then when you click the signon button it will help you set it up. Keep in mind the browserid.org webservice is just a stand-in, eventually it will be built directly into the browser.
+<div id="header" class="role-webapp">
+  <div class="login" hidden>Use BrowserID to sign in to browseridchat.com <img src="/static/img/sign_in_red.png" alt="Sign in" /></div>
+  <div id="login_webapp_output"></div>
 </div>
-(signin is optional, if you don't sign in you can send an anonymous message)
+<div class="role-browser" id="login_local_output"></div>
+<input type="button" value="Log Out" onclick="logout();window.location=''">
+
+<h3>Step 1. Generate an RSA Keypair</h3>
+Create a private/public keypair. The keys are stored by your browser, so only javascript from domain browseridchat.com. If someone sends you a message encrypted with your public key, then your browser can decrypt it using your private key. The public key is sent to the webapp, but it's not a secret. 
+
+
+<div  class="role-browser">
+window.localStorage.emails: 
+<div id="local_keypair"> Checking...</div>
+<input type="button" value="Generate New Keypair and Publish" onclick="generate_keypair()" />
+</div>
+<div class="role-webapp">
+<a id="pubkey_link" href="browseridchat.com/pubkey/<email@domain.com>" onclick="return false">Remote pubkey:</a><span id="remote_pubkey"></span>
+</div>
+
 <!-- Check if we're signed in already -->
 
-<h3>Step 2. Recipient email address</h3>
-Enter the email address of the person you want to talk to. The email address will be used with to look up their public key.<br>
-<input value="">
-<input type="button" value="Start session">
-<p>1. First we'll try to find the user's browserID public key.
+<h3>Step 2. Send an encrypted random token to the other party</h3>
+Enter the email address of the person you want to talk to. The email address will be used with to look up their public key. It's fine to use your own address and chat with yourself! Here are some email addresses you can try (coming soon: a chat bot)
+<p>
+<a class="shortcut_address">socrates1024@gmail.com</a> 
+<a class="shortcut_address">amiller@cs.ucf.edu</a> 
+<a class="shortcut_address">they4kman@gmail.com</a>
 
+<p><input value="" id="partner_address">
+<input id="start_session_button" type="button" value="Start session" onclick="lookup_partner_pubkey($('#partner_address').val())">
+<script type="text/javascript">
+    $(function () {
+	$('.shortcut_address').click(function () {
+	    $('#partner_address').val($(this).html())
+	    $('#start_session_button').trigger('click')
+	}).attr('href',"javascript:void(0)")
+    })
+    
+</script>
+
+<p>Next we need to prepare a random-token challenge for the partner, encrypting the token with their public key. We expect them to sign a certificate back from them. The partner is expected to reply with a BrowserID assertion that proves 1) they could decode the token (they own the private key) and 2) they are authorized to the chosen email address.
+
+<div>Peer's public key:
+  <span class="role-webapp pubkey" id="partner_pubkey_output"></span></div>
+<div>Random token <span class="role-browser pubkey partner_challenge_token"></span></div>
+<div>Encrypted token<span class="role-webapp pubkey partner_challenge_enc"></span></div>
+
+We are expecting to receive a BrowserID assertion with audience:<br>
+<code class="role-browser">http://<span class="partner_challenge_token">randomtoken</span>.token.browseridchat.com</code><br>
 <!-- check the session, have we already started talking to someone? -->
+<h3>Step 3. Answer your partner's challenge with another BrowserID sign-on</h3>
+
+<input type="button" value="Check for challenges" onclick="get_challenges()">
+<div id="challenges"></div>
+<div>
+Token encrypted with your pubkey:<span class="pubkey role-webapp" id="challenge_cipher"></span>
+<div>Decrypted token (secret):
+<span class="pubkey role-peer challenge_plain"></span></div>
+Email address of challenger: <span class="role-webapp challenge_email"></span>
+</div>
+
+<p>Sign in here to create a BrowserID assertion with your peer's token in the audience hostname. The assertion is published to the webapp, but will be directly verified by the peer's browser. Note that the decrypted token is no longer a secret when we reveal it to the webapp. This is fine, since we had to decrypt it with our private key, our partner is convinced that the token was transmitted without tampering.
+<div id="partnersign"><div class="login" hidden>
+<code class="role-webapp">http://<span class="challenge_plain">randomtoken</span>.token.browseridchat.com</code>
+<img src="/static/img/sign_in_red.png" alt="Sign in" /></div>
+</div>
 
 
-<h3>Step 3. Send messages</h3>
+
+
+<h3>Step 4. Establish a shared secret for symmetric (fast) encryption</h3>
+<h4>Everything here and below is not at all implemented</h4>
+Note: We should probably pack parts of the symmetric key into the first challenge. Once we exchange keys, we can XOR them to make a shared secret.
+<br>
 <input style="width:400px;height:40px">
-
 <input type="button" value="Send"><br>
 
-<p>2a. If you are signed in, but your friend isn't, then we'll send them a message showing them how to sign up for browserID.
-<p>2b. If we can't find the public key, then we'll send them a message asking them to sign up. Any messages you send to them will be stored locally until they show up. You can also choose to send them a regular unencrypted message.
 
-<h3>Step 4. Session output</h3>
+<h3>Step 5. Session output</h3>
 
 <p>This message will be sent encrypted with the BrowserID public key.Press this button to find the user's public key
 
-<h3>Step 5. Messages Received</h3>
+<h3>Step 6. Messages Received</h3>
 
 <p>Messages directed towards you (and decrypted in your browser)
 <div>
@@ -49,15 +138,7 @@ Enter the email address of the person you want to talk to. The email address wil
 
 </body>
 
-
-
-<script type="text/javascript" src="static/js/jquery.min.js"></script>
 <script type="text/javascript" src="static/js/main.js"></script>
-<script type="text/javascript">
-// Get a session ASAP
-function loggedIn() {
-    
-}
-</script>
-
+<script type="text/javascript" src="static/js/jschannel.js"></script>
+<script type="text/javascript" src="static/js/crypto.js"></script>
 </html>

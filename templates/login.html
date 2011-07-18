@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="/static/js/jquery.min.js"></script>
+<script src="https://browserid.org/include.js" type="text/javascript"></script>
+</head>
+<!-- 
+   Hidden iFrame accessed from <pubkey>.{= host =}.com
+   This is used to create an assertion signed by user@provider.com,
+   with audience <pubkey>.{= host =}.com
+-->
+<body>
+<script type="text/javascript">
+    var mychan = Channel.build({
+	window: window.parent, 
+	origin: "*",
+	scope: "browseridchat"
+    })
+    mychan.bind("getVerifiedEmail", function (trans, recipient) {
+	navigator.id.getVerifiedEmail(function (assertion) {
+	    $.ajax({
+		url:'/assertion',
+		type:'post',
+		data:{'assertion': assertion, 'recipient': recipient},
+		error: function (err) {
+                    trans.error(err)
+		},
+		success: function () {
+                    trans.complete(assertion)
+		}
+	    })
+
+	})
+	trans.delayReturn(true);
+    })
+</script>
+
+</body>
+</html>
