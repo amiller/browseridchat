@@ -1,4 +1,7 @@
 Andrew Miller <amiller@dappervision.com>
 Zach Kansler <they4kman@gmail.com>
 
+This clientside code borrows heavily from the BrowserID examples:
+http://github.com/mozilla/browserid 
+
 A realtime chat service using BrowserID
